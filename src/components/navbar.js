@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Menu, X, User } from "lucide-react";
 import { auth } from "@/utils/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
+	const router = useRouter();
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [username, setUsername] = useState("");
@@ -27,8 +29,13 @@ export default function Navbar() {
 	const handleSignOut = async () => {
 		try {
 			await signOut(auth);
+
+			// ❌ Remove 'isAdmin' cookie by expiring it
+			document.cookie = "isAdmin=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+			document.cookie = "isLoggedin=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
 			setUsername(null);
-			window.location.href = "/";
+			router.push("/");
 		} catch (err) {
 			console.error("Sign-out error:", err);
 		}

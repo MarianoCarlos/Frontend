@@ -83,12 +83,28 @@ export default function Translate() {
 		}
 	};
 
+	const speakText = () => {
+		if (!translatedText || !window.speechSynthesis) return;
+
+		const utterance = new SpeechSynthesisUtterance(translatedText);
+		utterance.lang = "en-US";
+		utterance.rate = 1;
+		window.speechSynthesis.cancel();
+		window.speechSynthesis.speak(utterance);
+	};
+
 	useEffect(() => {
 		if (webcamActive && !isPaused) {
 			const interval = setInterval(captureFrameAndSend, 1000); // every second
 			return () => clearInterval(interval);
 		}
 	}, [webcamActive, isPaused]);
+
+	useEffect(() => {
+		return () => {
+			window.speechSynthesis.cancel(); // Stop speech when component unmounts
+		};
+	}, []);
 
 	const captureFrameAndSend = async () => {
 		if (!videoRef.current) return;
@@ -211,7 +227,7 @@ export default function Translate() {
 											{copySuccess ? "Copied!" : "Copy"}
 										</button>
 										<button
-											onClick={() => console.log("Speak")}
+											onClick={speakText}
 											disabled={!translatedText}
 											className="bg-[#1D809A] text-white py-2 px-4 rounded-md flex items-center gap-2"
 										>
@@ -219,7 +235,10 @@ export default function Translate() {
 											Speak
 										</button>
 										<button
-											onClick={() => setTranslatedText("")}
+											onClick={() => {
+												window.speechSynthesis.cancel();
+												setTranslatedText("");
+											}}
 											disabled={!translatedText}
 											className="bg-[#EDEDED] text-[#252525] py-2 px-4 rounded-md flex items-center gap-2"
 										>

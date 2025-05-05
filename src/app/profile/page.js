@@ -6,6 +6,9 @@ import { auth, db } from "@/utils/firebase"; // adjust path as needed
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+import { deleteUser } from "firebase/auth";
+import { deleteDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
 	const [profile, setProfile] = useState(null);
@@ -15,6 +18,7 @@ export default function Profile() {
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
+	const router = useRouter();
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -78,6 +82,28 @@ export default function Profile() {
 		} catch (error) {
 			console.error("Error changing password:", error);
 			alert("Failed to change password. Make sure your current password is correct.");
+		}
+	};
+
+	const handleDeleteAccount = async () => {
+		const user = auth.currentUser;
+		if (!user) return;
+
+		const confirmed = confirm("Are you sure you want to delete your account? This action is irreversible.");
+		if (!confirmed) return;
+
+		try {
+			// Step 1: Delete Firestore document
+			await deleteDoc(doc(db, "users", user.uid));
+
+			// Step 2: Delete Firebase Auth account
+			await deleteUser(user);
+
+			alert("Your account has been deleted.");
+			router.push("/signup"); // Or wherever you'd like to redirect
+		} catch (error) {
+			console.error("Error deleting account:", error);
+			alert("Failed to delete account. You may need to reauthenticate.");
 		}
 	};
 
@@ -178,6 +204,12 @@ export default function Profile() {
 										className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
 									>
 										Edit Profile
+									</button>
+									<button
+										onClick={handleDeleteAccount}
+										className="mt-6 px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800"
+									>
+										Delete Account
 									</button>
 								</>
 							)}

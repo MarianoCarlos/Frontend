@@ -7,8 +7,11 @@ import { auth } from "@/utils/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
+import { useRouter } from "next/navigation";
 
 export default function SignUp() {
+	const router = useRouter();
+
 	const [formData, setFormData] = useState({
 		name: "",
 		email: "",
@@ -82,10 +85,12 @@ export default function SignUp() {
 				dob: formData.dob,
 				disability: formData.disability,
 				password: formData.password,
+				isAdmin: false,
 			});
 
 			// Redirect or show success message
-			console.log("Account created successfully!");
+			alert("Account created successfully!");
+			router.push("/"); // Redirect to login page after successful signup
 			// Example: redirect to dashboard
 			// router.push("/dashboard");
 		} catch (error) {

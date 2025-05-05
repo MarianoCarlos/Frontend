@@ -1,17 +1,31 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/navbar";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/utils/firebase";
+import { db, auth } from "@/utils/firebase";
+import { getDoc, doc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 const Login = () => {
+	const router = useRouter();
+	// 🔒 State variables for email, password, loading, and error
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
+
+	const searchParams = useSearchParams();
+	const reason = searchParams.get("reason");
+
+	useEffect(() => {
+		if (reason === "auth") {
+			setError("Please log in to access that page.");
+		}
+	}, [reason]);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -25,11 +39,30 @@ const Login = () => {
 
 		try {
 			const userCredential = await signInWithEmailAndPassword(auth, email, password);
-			console.log("User signed in:", userCredential.user);
-			window.location.href = "/";
+			const user = userCredential.user;
+
+			// 🔍 Lookup user in Firestore by UID
+			const userRef = doc(db, "users", user.uid);
+			const userSnap = await getDoc(userRef);
+
+			if (userSnap.exists()) {
+				const userData = userSnap.data();
+				console.log("User profile:", userData);
+
+				// ✅ Set 'isAdmin' cookie using document.cookie
+				if ("isAdmin" in userData) {
+					document.cookie = `isAdmin=${userData.isAdmin}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
+					document.cookie = `isLoggedIn=true; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
+				}
+
+				alert("User signed in!");
+				router.push("/"); // Redirect to home page after successful login
+			} else {
+				setError("No user data found in Firestore.");
+			}
 		} catch (err) {
-			setError("Invalid email or password. Please try again.");
 			console.error("Firebase Auth error:", err);
+			setError("Invalid email or password. Please try again.");
 		} finally {
 			setIsLoading(false);
 		}
