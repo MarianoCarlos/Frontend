@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Navbar from "@/components/navbar";
 import { Eye, EyeOff, LogIn } from "lucide-react";
@@ -11,13 +11,13 @@ import { useSearchParams } from "next/navigation";
 
 const Login = () => {
 	const router = useRouter();
-	// 🔒 State variables for email, password, loading, and error
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
 
+	// This is the part causing the issue
 	const searchParams = useSearchParams();
 	const reason = searchParams.get("reason");
 
@@ -41,7 +41,6 @@ const Login = () => {
 			const userCredential = await signInWithEmailAndPassword(auth, email, password);
 			const user = userCredential.user;
 
-			// 🔍 Lookup user in Firestore by UID
 			const userRef = doc(db, "users", user.uid);
 			const userSnap = await getDoc(userRef);
 
@@ -49,14 +48,13 @@ const Login = () => {
 				const userData = userSnap.data();
 				console.log("User profile:", userData);
 
-				// ✅ Set 'isAdmin' cookie using document.cookie
 				if ("isAdmin" in userData) {
-					document.cookie = `isAdmin=${userData.isAdmin}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
-					document.cookie = `isLoggedIn=true; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
+					document.cookie = `isAdmin=${userData.isAdmin}; path=/; max-age=${60 * 60 * 24 * 7}`;
+					document.cookie = `isLoggedIn=true; path=/; max-age=${60 * 60 * 24 * 7}`;
 				}
 
 				alert("User signed in!");
-				router.push("/"); // Redirect to home page after successful login
+				router.push("/"); // Redirect to home page
 			} else {
 				setError("No user data found in Firestore.");
 			}
@@ -180,4 +178,10 @@ const Login = () => {
 	);
 };
 
-export default Login;
+export default function SuspenseLogin() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<Login />
+		</Suspense>
+	);
+}
